@@ -1,0 +1,14 @@
+[Desktop Entry]
+Comment=
+Exec=/usr/local/bin/Clifford2d
+Icon=/usr/local/share/Clifford2d/Clifford2d.png
+Name=Clifford2d
+NoDisplay=false
+Path[$e]=
+StartupNotify=true
+Terminal=0
+TerminalOptions=
+Type=Application
+X-KDE-SubstituteUID=false
+X-KDE-Username=
+Categories=Science
