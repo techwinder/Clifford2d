@@ -55,10 +55,7 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
     m_pImg = nullptr;
 
     QPalette palette;
-/*    palette.setColor(QPalette::WindowText, DisplayOptions::textColor());
-    palette.setColor(QPalette::Text, DisplayOptions::textColor());
-*/
-//    QColor clr = DisplayOptions::backgroundColor();
+
     QColor clr(Qt::black);
     clr.setAlpha(255);
     palette.setColor(QPalette::Window, clr);
@@ -273,6 +270,9 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
 
 Attractor2d::~Attractor2d()
 {
+    QSettings settings(QSettings::IniFormat, QSettings::UserScope, "Clifford2d");
+    saveSettings(settings);
+
     if(m_pImg) delete m_pImg;
 }
 

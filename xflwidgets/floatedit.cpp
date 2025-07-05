@@ -43,8 +43,8 @@ void FloatEdit::readValue()
 {
     QString strange=text().trimmed();
 
-    bool bOK=true;
-    double val = locale().toDouble(strange, &bOK);
+    bool bOK(true);
+    double val = strange.toDouble(&bOK);
 
 
     if(bOK)
