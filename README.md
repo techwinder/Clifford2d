@@ -7,8 +7,8 @@ An implementation of the Clifford attractor using the Qt libraries
 # Description
 ## The Clifford attractor
 
-$$x_{n+1} = \sin(a \dot y_n) + c \dot \cos(a \dot x_n)$$<br>
-$$y_{n+1} = \sin(b \dot x_n) + d \dot  \cos(b \dot y_n)$$
+$$x_{n+1} = \sin(a \cdot y_n) + c \cdot \cos(a \cdot x_n)$$<br>
+$$y_{n+1} = \sin(b \cdot x_n) + d \cdot \cos(b \cdot y_n)$$
 
 # Usage
 ![image info](./meta/res/interface.png)
