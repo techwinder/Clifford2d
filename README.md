@@ -1,6 +1,6 @@
 # Clifford2d
-Clifford attractor
 
+![image info](./pictures/attr2d_a-1.7_b1.7_c-2.5_d0.7.png)
 
 An implementation of the Clifford attractor using the Qt libraries
 
