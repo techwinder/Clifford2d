@@ -48,4 +48,4 @@ An implementation of the Clifford attractor using the Qt libraries
 
 ## Windows and Mac
 - Install the Qt6 development libraries from the Qt site
-- Compile and run in release mode
+- Compile in release mode
