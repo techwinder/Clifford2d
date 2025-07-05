@@ -1,6 +1,6 @@
 # Clifford2d
 
-![image info](./pictures/attr2d_a-1.7_b1.7_c-2.5_d0.7.png)
+![image info](./meta/res/attr2d_a-1.7_b1.7_c-2.5_d0.7.png)
 
 An implementation of the Clifford attractor using the Qt libraries
 
@@ -9,7 +9,7 @@ An implementation of the Clifford attractor using the Qt libraries
 
 
 # Usage
-![image info](./pictures/interface.png)
+![image info](./meta/res/interface.png)
 
 - Time out: this defines how long the attractor will run
 
@@ -41,7 +41,11 @@ An implementation of the Clifford attractor using the Qt libraries
 # Compilation
 ## Linux
 - Use your distribution's pacakge manager to  install the Qt6***.dev libraries
+- `qmake`
+- `make`
+- `sudo make install`
+-  `Clifford2d` to run
 
 ## Windows and Mac
 - Install the Qt6 development libraries from the Qt site
-- Compile in release mode
+- Compile and run in release mode

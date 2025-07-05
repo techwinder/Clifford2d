@@ -5,7 +5,7 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs depr
 TEMPLATE = app
 TARGET = Clifford2d
 
-VERSION = 7.51
+VERSION = 1.00
 
 QT       += core gui
 
