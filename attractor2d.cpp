@@ -2,7 +2,7 @@
 
     flow5 application
     Copyright (C) Andre Deperrois
-    All rights reserved.
+    License: GPL v3
 
 *****************************************************************************/
 
@@ -647,7 +647,6 @@ double Attractor2d::fy(double x, double y) const
 }
 
 
-
 void Attractor2d::updateImg()
 {
     s_MaxOccupancy = m_pieMaxOcc->value();
@@ -682,15 +681,6 @@ void Attractor2d::updateImg()
 
     update();
 }
-
-/*
-for (int y = 0; y < image.height(); ++y) {
-    QRgb *line = reinterpret_cast<QRgb*>(image.scanLine(y));
-    for (int x = 0; x < image.width(); ++x) {
-        QRgb &rgb = line[x];
-        rgb = qRgba(qRed(rgb), qGreen(0), qBlue(rgb), qAlpha(rgb));
-    }
-}*/
 
 
 void Attractor2d::processImgBlock(int rf, int rl)
@@ -736,7 +726,6 @@ void Attractor2d::processImgBlock(int rf, int rl)
                     b[1] = 0xff;
                     b[2] = 0xff;
                 }
-
             }
             else
             {

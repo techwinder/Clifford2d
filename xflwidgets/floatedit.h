@@ -2,7 +2,7 @@
 
     flow5 application
     Copyright (C) Andre Deperrois 
-    All rights reserved.
+    License: GPL v3
 
 *****************************************************************************/
 
