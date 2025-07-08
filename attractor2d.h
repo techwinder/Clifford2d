@@ -33,7 +33,8 @@ class Attractor2d : public QWidget
         static void saveSettings(QSettings &settings);
 
     private:
-        void runAttractor(QWidget *pParent);
+        void initialize();
+        void runAttractor(QWidget *pParent, bool bInitialize);
         void processImgBlock(int rf, int rl);
         void readParams();
         void updateBtns(bool bStart);
@@ -50,7 +51,7 @@ class Attractor2d : public QWidget
     private slots:
         void onBackground();
         void onContinue();
-        void onClear();
+        void onStart();
         void onSaveImg();
         void onOpenImg();
         void updateImg();
@@ -63,7 +64,7 @@ class Attractor2d : public QWidget
     private:
 
         QFrame *m_pFrame;
-        QPushButton *m_ppbStart, *m_ppbClear;
+        QPushButton *m_ppbContinue, *m_ppbStart;
         QPushButton *m_ppbSaveImg;
         IntEdit *m_pieWidth, *m_pieHeight;
         FloatEdit *m_pfeTimeOut;
@@ -72,7 +73,7 @@ class Attractor2d : public QWidget
         FloatEdit *m_pfea, *m_pfeb;
         FloatEdit *m_pfec, *m_pfed;
 
-        QCheckBox *m_pchDark;
+        QRadioButton *m_prbDark, *m_prbLight;
 
         QSlider *m_pslRed, *m_pslGreen, *m_pslBlue;
         QLabel *m_plabInfo;
@@ -84,6 +85,7 @@ class Attractor2d : public QWidget
         bool m_bCancel;
         uint m_NSteps;
 
+        double xmin, ymin, xrange, yrange, xscale, yscale;
 
         static QString s_LastFileName;
 

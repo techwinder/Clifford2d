@@ -24,6 +24,7 @@
 
 
 #define PRECISION 1.e-6
+#define MARGINFACTOR 1.025
 
 
 QByteArray Attractor2d::s_Geometry;
@@ -52,22 +53,19 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
 
     m_NSteps = 0;
 
+    xmin = ymin = xrange = yrange = xscale = yscale = 0.0;
+
     m_pImg = nullptr;
 
-    QPalette palette;
-
-    QColor clr(Qt::black);
-    clr.setAlpha(255);
-    palette.setColor(QPalette::Window, clr);
-    palette.setColor(QPalette::Base, clr);
 
     QFont fixedfnt(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     QFontMetrics fm(fixedfnt);
 
     m_pFrame = new QFrame(this);
     {
-        m_pFrame->setPalette(palette);
-        m_pFrame->setFrameShape(QFrame::NoFrame);
+//        m_pFrame->setStyleSheet("background-color: rgb(105, 105, 105, 155);");
+
+//        m_pFrame->setFrameShape(QFrame::NoFrame);
         m_pFrame->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
         QVBoxLayout * pFrameLayout = new QVBoxLayout;
         {
@@ -113,11 +111,11 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
                         m_pfed->setToolTip(tip);
 
 
-                        m_ppbClear = new QPushButton("Clear");
-                        connect(m_ppbClear, SIGNAL(clicked()), SLOT(onClear()));
-
                         m_ppbStart = new QPushButton("Start");
-                        connect(m_ppbStart, SIGNAL(clicked()), SLOT(onContinue()));
+                        connect(m_ppbStart, SIGNAL(clicked()), SLOT(onStart()));
+
+                        m_ppbContinue = new QPushButton("Continue");
+                        connect(m_ppbContinue, SIGNAL(clicked()), SLOT(onContinue()));
 
 
 
@@ -138,8 +136,8 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
                         pCliffLayout->addWidget(m_pfed,          8, 2);
 
 
-                        pCliffLayout->addWidget(m_ppbClear,      16,1,1,3);
-                        pCliffLayout->addWidget(m_ppbStart,      17,1,1,3);
+                        pCliffLayout->addWidget(m_ppbStart,      16,1,1,3);
+                        pCliffLayout->addWidget(m_ppbContinue,      17,1,1,3);
                         pCliffLayout->setColumnStretch(2,1);
                         pCliffLayout->setRowStretch(17,1);
                     }
@@ -210,10 +208,21 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
                         connect(m_pslGreen, &QSlider::sliderReleased, this, &Attractor2d::updateImg);
                         connect(m_pslBlue,  &QSlider::sliderReleased, this, &Attractor2d::updateImg);
 
-                        m_pchDark = new QCheckBox("Dark background");
-                        m_pchDark->setChecked(s_bDark);
-                        connect(m_pchDark,  &QCheckBox::clicked, this, &Attractor2d::onBackground);
-                        connect(m_pchDark,  &QCheckBox::clicked, this, &Attractor2d::updateImg);
+
+                        QLabel *plabBack = new QLabel("Background");
+                        QButtonGroup *pGroup = new QButtonGroup;
+                        {
+                            m_prbDark = new QRadioButton("Dark");
+                            m_prbLight = new QRadioButton("Light");
+                            pGroup->addButton(m_prbDark);
+                            pGroup->addButton(m_prbLight);
+
+                            m_prbDark->setChecked(s_bDark);
+                            connect(m_prbDark,        &QCheckBox::clicked, this, &Attractor2d::onBackground);
+                            connect(m_prbDark,        &QCheckBox::clicked, this, &Attractor2d::updateImg);
+                            connect(m_prbLight,       &QCheckBox::clicked, this, &Attractor2d::onBackground);
+                            connect(m_prbLight,       &QCheckBox::clicked, this, &Attractor2d::updateImg);
+                        }
 
                         m_ppbSaveImg = new QPushButton(QString::asprintf("Save 2d image %dx%d", s_ImgSize.width(), s_ImgSize.height()));
                         connect(m_ppbSaveImg, &QPushButton::clicked, this, &Attractor2d::onSaveImg);
@@ -221,20 +230,22 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
                         QPushButton *ppbOpenImg = new QPushButton("Open saved image");
                         connect(ppbOpenImg, SIGNAL(clicked()), SLOT(onOpenImg()));
 
-                        pColorLayout->addWidget(plabMaxOcc,      5, 1);
-                        pColorLayout->addWidget(m_plabMaxOcc,    5, 2, Qt::AlignRight);
-                        pColorLayout->addWidget(m_pieMaxOcc,     5, 3);
+                        pColorLayout->addWidget(plabMaxOcc,       5, 1);
+                        pColorLayout->addWidget(m_plabMaxOcc,     5, 2, Qt::AlignRight);
+                        pColorLayout->addWidget(m_pieMaxOcc,      5, 3);
 
-                        pColorLayout->addWidget(plabRed,         7, 1);
-                        pColorLayout->addWidget(m_pslRed,        7, 2, 1, 2);
-                        pColorLayout->addWidget(plabGreen,       8, 1);
-                        pColorLayout->addWidget(m_pslGreen,      8, 2, 1, 2);
-                        pColorLayout->addWidget(plabBlue,        9, 1);
-                        pColorLayout->addWidget(m_pslBlue,       9, 2, 1, 2);
+                        pColorLayout->addWidget(plabRed,          7, 1);
+                        pColorLayout->addWidget(m_pslRed,         7, 2, 1, 2);
+                        pColorLayout->addWidget(plabGreen,        8, 1);
+                        pColorLayout->addWidget(m_pslGreen,       8, 2, 1, 2);
+                        pColorLayout->addWidget(plabBlue,         9, 1);
+                        pColorLayout->addWidget(m_pslBlue,        9, 2, 1, 2);
 
-                        pColorLayout->addWidget(m_pchDark,       10,1, 1, 3);
-                        pColorLayout->addWidget(m_ppbSaveImg,    11,1, 1, 3);
-                        pColorLayout->addWidget(ppbOpenImg,      12,1, 1, 3);
+                        pColorLayout->addWidget(plabBack,         10,1);
+                        pColorLayout->addWidget(m_prbDark,        10,2);
+                        pColorLayout->addWidget(m_prbLight,       10,3);
+                        pColorLayout->addWidget(m_ppbSaveImg,     11,1, 1, 3);
+                        pColorLayout->addWidget(ppbOpenImg,       12,1, 1, 3);
                         pColorLayout->setColumnStretch(3,1);
                         pColorLayout->setRowStretch(13,1);
                     }
@@ -258,7 +269,7 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
 
         m_pFrame->setLayout(pFrameLayout);
 //        pFrame->setStyleSheet("QFrame{background-color: transparent;}");
-        setWidgetStyle(m_pFrame, palette);
+//        setWidgetStyle(m_pFrame, palette);
     }
 
     onResizeImage();
@@ -317,34 +328,17 @@ void Attractor2d::onResizeImage()
 
     if(m_pImg) delete m_pImg;
     m_pImg = new QImage(s_ImgSize, QImage::Format_ARGB32);
-    s_bDark = m_pchDark->isChecked();
+    s_bDark = m_prbDark->isChecked();
     m_pImg->fill(s_bDark ? Qt::black : Qt::white);
     m_Occupancy.resize(m_pImg->width()*m_pImg->height());
     m_Occupancy.fill(0);
 }
 
 
-void Attractor2d::onClear()
-{
-    m_bCancel = true;
-
-    updateBtns(true);
-
-    readParams();
-
-    s_bDark = m_pchDark->isChecked();
-    m_pImg->fill(s_bDark ? Qt::black : Qt::white);
-
-    m_Occupancy.fill(0);
-    m_NSteps = 0;
-    update();
-}
-
-
 void Attractor2d::onBackground()
 {
-    s_bDark = m_pchDark->isChecked();
-
+    s_bDark = m_prbDark->isChecked();
+/*
     QPalette palette;
 
     QColor clr = s_bDark ? Qt::black : Qt::white;
@@ -355,7 +349,7 @@ void Attractor2d::onBackground()
     palette.setColor(QPalette::WindowText, s_bDark ? Qt::white : Qt::black);
     palette.setColor(QPalette::Text,       s_bDark ? Qt::white : Qt::black);
 
-    setWidgetStyle(m_pFrame, palette);
+    setWidgetStyle(m_pFrame, palette);*/
 }
 
 
@@ -429,101 +423,147 @@ void Attractor2d::updateBtns(bool bStart)
 {
     if(bStart)
     {
-        m_ppbStart->setText("Start/continue");
+        m_ppbStart->setText("Start");
 
-        m_ppbClear->setEnabled(true);
+        m_ppbContinue->setEnabled(true);
+//        m_ppbStart->setEnabled(true);
         m_ppbSaveImg->setEnabled(true);
     }
     else
     {
         m_ppbStart->setText("Stop");
-        m_ppbClear->setEnabled(false);
+
+        m_ppbContinue->setEnabled(false);
+//        m_ppbStart->setEnabled(false);
         m_ppbSaveImg->setEnabled(false);
     }
 }
 
 
-void Attractor2d::onContinue()
+void Attractor2d::onStart()
 {
-    if(!m_bIsRunning)
+    if(m_bIsRunning)
     {
-        QApplication::setOverrideCursor(Qt::BusyCursor);
-        readParams();
-        updateBtns(false);
+        m_bCancel = true;
+        return;
+    }
 
-        m_bIsRunning = true;
-        m_bCancel = false;
+    s_bDark = m_prbDark->isChecked();
+    m_pImg->fill(s_bDark ? Qt::black : Qt::white);
+
+    m_Occupancy.fill(0);
+    m_NSteps = 0;
+
+    QApplication::setOverrideCursor(Qt::BusyCursor);
+    readParams();
+    updateBtns(false);
+
+    m_bIsRunning = true;
+    m_bCancel = false;
+
 
 #if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
-        QFuture<void> future = QtConcurrent::run(&Attractor2d::runAttractor, this, this);
+    QFuture<void> future = QtConcurrent::run(&Attractor2d::runAttractor, this, this, true);
 #else
-        QtConcurrent::run(this, &Attractor2d::runAttractor, this);
+    QtConcurrent::run(this, &Attractor2d::runAttractor, this);
 #endif
-    }
-    else
-    {
-        QApplication::restoreOverrideCursor();
-
-        m_bCancel = true;
-        updateBtns(true);
-    }
+    update();
 }
 
 
-void Attractor2d::runAttractor(QWidget *pParent)
+void Attractor2d::onContinue()
 {
+    if(m_bIsRunning) return;
+
+    m_bIsRunning = true;
+    m_bCancel = false;
+
+    updateBtns(false);
+
+    QApplication::setOverrideCursor(Qt::BusyCursor);
+
+#if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
+    QFuture<void> future = QtConcurrent::run(&Attractor2d::runAttractor, this, this, false);
+#else
+    QtConcurrent::run(this, &Attractor2d::runAttractor, this);
+#endif
+    update();
+
+}
+
+
+void Attractor2d::initialize()
+{
+    double x(0), y(0);
+    xmin = 1.e10;
+    ymin = 1.e10;
+    double xmax(-1.e10), ymax(-1.e10);
+
+    double x1(0), y1(0);
+
+    // determine approx. width and height of attractor
+    for(int iruns=0; iruns<5; iruns++)
+    {
+        x = QRandomGenerator::global()->bounded(1.0);
+        y = QRandomGenerator::global()->bounded(1.0);
+        for(int i=0; i<5000; i++)
+        {
+            x1 = fx(x, y);
+            y1 = fy(x, y);
+
+            if(fabs(x-x1)<PRECISION && fabs(y-y1)<PRECISION)
+            {
+    //            m_plabInfo->setText("Sequence is stationary"); // m_plabinfo belongs to other thread
+                m_bCancel = true;
+                m_bIsRunning = false;
+                emit taskFinished();
+                return;
+            }
+
+            x = x1;
+            y = y1;
+
+            xmin = std::min(x, xmin);
+            ymin = std::min(y, ymin);
+            xmax = std::max(x, xmax);
+            ymax = std::max(y, ymax);
+        }
+    }
+
+    int w = m_pImg->width();
+    int h = m_pImg->height();
+
+
+
+    xrange = (xmax-xmin)*MARGINFACTOR;
+    yrange = (ymax-ymin)*MARGINFACTOR;
+    xscale = xrange/double(w);
+    yscale = yrange/double(h);
+
+    qDebug()<<xrange<<yrange<<xscale<<yscale;
+
+}
+
+
+void Attractor2d::runAttractor(QWidget *pParent, bool bInitialize)
+{
+    if(bInitialize)
+    {
+        initialize();
+    }
+
+
     QElapsedTimer t;
     t.start();
     int lasttime = 0;
 
     QVector<ushort> tmpOccupancy = m_Occupancy; // continue existing
 
-    double x(0), y(0);
-    double xmin( 1.e10), ymin( 1.e10);
-    double xmax(-1.e10), ymax(-1.e10);
-
-    double x1(0), y1(0);
-
-    x = QRandomGenerator::global()->bounded(1.0);
-    y = QRandomGenerator::global()->bounded(1.0);
-
-
-    // determine approx. width and height of attractor
-    for(int i=0; i<5000; i++)
-    {
-        x1 = fx(x, y);
-        y1 = fy(x, y);
-
-        if(fabs(x-x1)<PRECISION && fabs(y-y1)<PRECISION)
-        {
-//            m_plabInfo->setText("Sequence is stationary"); // m_plabinfo belongs to other thread
-            m_bCancel = true;
-            m_bIsRunning = false;
-            emit taskFinished();
-            return;
-        }
-
-        x = x1;
-        y = y1;
-
-        xmin = std::min(x, xmin);
-        ymin = std::min(y, ymin);
-        xmax = std::max(x, xmax);
-        ymax = std::max(y, ymax);
-    }
-
+    // center attractor in image
+    int xoffset(0), yoffset(0);
     int w = m_pImg->width();
     int h = m_pImg->height();
 
-    double marginfactor = 1.025;
-
-    double xrange = (xmax-xmin)*marginfactor;
-    double yrange = (ymax-ymin)*marginfactor;
-    double xscale = xrange/double(w);
-    double yscale = yrange/double(h);
-
-    // center attractor in image
-    int xoffset(0), yoffset(0);
     if(xscale>yscale)
     {
         yoffset = (h - int(yrange / xscale))/2;
@@ -533,8 +573,8 @@ void Attractor2d::runAttractor(QWidget *pParent)
         xoffset = (w - int(xrange / yscale))/2;
     }
 
-    x = QRandomGenerator::global()->bounded(1.0);
-    y = QRandomGenerator::global()->bounded(1.0);
+    double x = QRandomGenerator::global()->bounded(1.0);
+    double y = QRandomGenerator::global()->bounded(1.0);
 
     bool bFinished(false);
     int m(0), n(0);
@@ -542,13 +582,13 @@ void Attractor2d::runAttractor(QWidget *pParent)
     {
         if(xscale>yscale)
         {
-            m =  std::round((x-xmin*marginfactor)/xrange*double(w));
-            n =  std::round((y-ymin*marginfactor)/xrange*double(w));
+            m =  std::round((x-xmin*MARGINFACTOR)/xrange*double(w));
+            n =  std::round((y-ymin*MARGINFACTOR)/xrange*double(w));
         }
         else
         {
-            m =  std::round((x-xmin*marginfactor)/yrange*double(h));
-            n =  std::round((y-ymin*marginfactor)/yrange*double(h));
+            m =  std::round((x-xmin*MARGINFACTOR)/yrange*double(h));
+            n =  std::round((y-ymin*MARGINFACTOR)/yrange*double(h));
         }
 
         m += xoffset;
@@ -565,8 +605,8 @@ void Attractor2d::runAttractor(QWidget *pParent)
 //            qDebug()<<"past image borders";
         }
 
-        x1 = fx(x, y);
-        y1 = fy(x, y);
+        double x1 = fx(x, y);
+        double y1 = fy(x, y);
 
         x = x1;
         y = y1;
@@ -653,7 +693,7 @@ void Attractor2d::updateImg()
     s_red   = float(m_pslRed->value())/100.0f;
     s_green = float(m_pslGreen->value())/100.0f;
     s_blue  = float(m_pslBlue->value())/100.0f;
-    s_bDark = m_pchDark->isChecked();
+    s_bDark = m_prbDark->isChecked();
 
     // Reading while we're writing!
     int nBlocks = QThread::idealThreadCount();
@@ -750,8 +790,8 @@ void Attractor2d::processImgBlock(int rf, int rl)
                 b[2] = blue  * 0xff;
 
             }
-            rgb =  qRgba(b[0], b[1], b[2], alpha);
 
+            rgb =  qRgba(b[0], b[1], b[2], alpha);
         }
     }
 }
