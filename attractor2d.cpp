@@ -48,6 +48,8 @@ float Attractor2d::s_red(1.0f), Attractor2d::s_green(1.0f), Attractor2d::s_blue(
 Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
 {
     setWindowTitle("Clifford 2d attractor");
+    setWindowIcon(QIcon(":/icons/Clifford2d.png"));
+
     m_bCancel = true; // start in cancelled state
     m_bIsRunning = false;
 
@@ -168,12 +170,12 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
 
                     QGridLayout*pColorLayout = new QGridLayout;
                     {
-                        connect(m_pieWidth,  &IntEdit::intChanged, this, &Attractor2d::onResizeImage);
-                        connect(m_pieHeight, &IntEdit::intChanged, this, &Attractor2d::onResizeImage);
+//                        connect(m_pieWidth,  &IntEdit::intChanged, this, &Attractor2d::onResizeImage);
+//                        connect(m_pieHeight, &IntEdit::intChanged, this, &Attractor2d::onResizeImage);
 
                         QLabel *plabMaxOcc = new QLabel("Max. occupancy:");
 
-                        m_plabMaxOcc = new QLabel("0 / ");
+                        m_plabMaxOcc = new QLabel(" / 0");
                         m_plabMaxOcc->setFont(fixedfnt);
 
                         m_pieMaxOcc = new IntEdit(s_MaxOccupancy);
@@ -210,7 +212,7 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
 
 
                         QLabel *plabBack = new QLabel("Background");
-                        QButtonGroup *pGroup = new QButtonGroup;
+                        QButtonGroup *pGroup = new QButtonGroup(this);
                         {
                             m_prbDark = new QRadioButton("Dark");
                             m_prbLight = new QRadioButton("Light");
@@ -231,8 +233,8 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
                         connect(ppbOpenImg, SIGNAL(clicked()), SLOT(onOpenImg()));
 
                         pColorLayout->addWidget(plabMaxOcc,       5, 1);
-                        pColorLayout->addWidget(m_plabMaxOcc,     5, 2, Qt::AlignRight);
-                        pColorLayout->addWidget(m_pieMaxOcc,      5, 3);
+                        pColorLayout->addWidget(m_pieMaxOcc,      5, 2);
+                        pColorLayout->addWidget(m_plabMaxOcc,     5, 3, Qt::AlignRight);
 
                         pColorLayout->addWidget(plabRed,          7, 1);
                         pColorLayout->addWidget(m_pslRed,         7, 2, 1, 2);
@@ -322,6 +324,7 @@ void Attractor2d::readParams()
 
 void Attractor2d::onResizeImage()
 {
+    m_bCancel = true;
     s_ImgSize.setWidth(m_pieWidth->value());
     s_ImgSize.setHeight(m_pieHeight->value());
     m_ppbSaveImg->setText(QString::asprintf("Save 2d image %dx%d", s_ImgSize.width(), s_ImgSize.height()));
@@ -351,7 +354,6 @@ void Attractor2d::onBackground()
 
     setWidgetStyle(m_pFrame, palette);*/
 }
-
 
 
 void Attractor2d::showEvent(QShowEvent *pEvent)
@@ -404,7 +406,7 @@ void Attractor2d::saveSettings(QSettings &settings)
         settings.setValue("red",            s_red);
         settings.setValue("green",          s_green);
         settings.setValue("blue",           s_blue);
-        settings.setValue("dark",     s_bDark);
+        settings.setValue("dark",           s_bDark);
     }
     settings.endGroup();
 }
@@ -426,7 +428,6 @@ void Attractor2d::updateBtns(bool bStart)
         m_ppbStart->setText("Start");
 
         m_ppbContinue->setEnabled(true);
-//        m_ppbStart->setEnabled(true);
         m_ppbSaveImg->setEnabled(true);
     }
     else
@@ -434,7 +435,6 @@ void Attractor2d::updateBtns(bool bStart)
         m_ppbStart->setText("Stop");
 
         m_ppbContinue->setEnabled(false);
-//        m_ppbStart->setEnabled(false);
         m_ppbSaveImg->setEnabled(false);
     }
 }
@@ -447,6 +447,8 @@ void Attractor2d::onStart()
         m_bCancel = true;
         return;
     }
+
+    onResizeImage();
 
     s_bDark = m_prbDark->isChecked();
     m_pImg->fill(s_bDark ? Qt::black : Qt::white);
@@ -533,15 +535,10 @@ void Attractor2d::initialize()
     int w = m_pImg->width();
     int h = m_pImg->height();
 
-
-
     xrange = (xmax-xmin)*MARGINFACTOR;
     yrange = (ymax-ymin)*MARGINFACTOR;
     xscale = xrange/double(w);
     yscale = yrange/double(h);
-
-    qDebug()<<xrange<<yrange<<xscale<<yscale;
-
 }
 
 
@@ -602,7 +599,7 @@ void Attractor2d::runAttractor(QWidget *pParent, bool bInitialize)
         }
         else
         {
-//            qDebug()<<"past image borders";
+            qDebug()<<"past image borders";
         }
 
         double x1 = fx(x, y);
@@ -729,14 +726,12 @@ void Attractor2d::processImgBlock(int rf, int rl)
     uchar alpha = 0xff;
 
     int w = m_pImg->width();
-    int h = m_pImg->height();
-    int npixels = w*h;
 
     ushort maxocc = 0;
     for(int ipixel=0; ipixel<m_Occupancy.size(); ipixel++)
         maxocc = std::max(m_Occupancy.at(ipixel), maxocc);
 
-    m_plabMaxOcc->setText(QString::asprintf("%d / ", maxocc));
+    m_plabMaxOcc->setText(QString::asprintf(" / %d", maxocc));
 
     if(s_MaxOccupancy<=0) s_MaxOccupancy=maxocc;
 
@@ -750,7 +745,12 @@ void Attractor2d::processImgBlock(int rf, int rl)
         {
             QRgb &rgb = pLine[col];
             int ipixel = row*w+col;
-            Q_ASSERT(ipixel<npixels);
+
+            if(ipixel<0 || ipixel>=m_Occupancy.size())
+            {
+                qDebug()<<"Size error";
+                continue;
+            }
 
             if(m_Occupancy.at(ipixel)==0)
             {
@@ -794,6 +794,7 @@ void Attractor2d::processImgBlock(int rf, int rl)
             rgb =  qRgba(b[0], b[1], b[2], alpha);
         }
     }
+
 }
 
 
