@@ -33,11 +33,10 @@ class Attractor2d : public QWidget
         static void saveSettings(QSettings &settings);
 
     private:
-        bool initialize();
+        void initialize();
         void runAttractor(QWidget *pParent, bool bInitialize);
         void processImgBlock(int rf, int rl);
         void readParams();
-        void resizeImage();
         void updateBtns(bool bStart);
         void paintEvent(QPaintEvent*pEvent) override;
         void customEvent(QEvent *pEvent) override;
@@ -57,6 +56,7 @@ class Attractor2d : public QWidget
         void onOpenImg();
         void updateImg();
         void onTaskFinished();
+        void onResizeImage();
 
     signals:
         void taskFinished();
@@ -85,7 +85,7 @@ class Attractor2d : public QWidget
         bool m_bCancel;
         uint m_NSteps;
 
-        double m_xmin, m_ymin, m_xrange, m_yrange, m_xscale, m_yscale;
+        double xmin, ymin, xrange, yrange, xscale, yscale;
 
         static QString s_LastFileName;
 

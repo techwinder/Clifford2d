@@ -8,7 +8,6 @@
 
 
 #include <QtConcurrent/QtConcurrent>
-#include <QFuture>
 #include <QStandardPaths>
 #include <QApplication>
 #include <QDesktopServices>
@@ -49,14 +48,12 @@ float Attractor2d::s_red(1.0f), Attractor2d::s_green(1.0f), Attractor2d::s_blue(
 Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
 {
     setWindowTitle("Clifford 2d attractor");
-    setWindowIcon(QIcon(":/icons/Clifford2d.png"));
-
     m_bCancel = true; // start in cancelled state
     m_bIsRunning = false;
 
     m_NSteps = 0;
 
-    m_xmin = m_ymin = m_xrange = m_yrange = m_xscale = m_yscale = 0.0;
+    xmin = ymin = xrange = yrange = xscale = yscale = 0.0;
 
     m_pImg = nullptr;
 
@@ -115,11 +112,9 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
 
 
                         m_ppbStart = new QPushButton("Start");
-                        m_ppbStart->setToolTip("<p>Clears the image and the occupancy buffer, then launches the attractor</p>");
                         connect(m_ppbStart, SIGNAL(clicked()), SLOT(onStart()));
 
                         m_ppbContinue = new QPushButton("Continue");
-                        m_ppbContinue->setToolTip("<p>Continues the attractor from the current occupancy buffer</p>");
                         connect(m_ppbContinue, SIGNAL(clicked()), SLOT(onContinue()));
 
 
@@ -277,7 +272,7 @@ Attractor2d::Attractor2d(QWidget *parent) : QWidget{parent}
 //        setWidgetStyle(m_pFrame, palette);
     }
 
-    resizeImage();
+    onResizeImage();
 
 //    connect(this, &Attractor2d::updateImg,    this, &Attractor2d::onUpdateImg, Qt::DirectConnection); // do not update btns which belong to the app's thread
     connect(this, &Attractor2d::taskFinished, this, &Attractor2d::onTaskFinished, Qt::QueuedConnection);
@@ -325,7 +320,7 @@ void Attractor2d::readParams()
 }
 
 
-void Attractor2d::resizeImage()
+void Attractor2d::onResizeImage()
 {
     m_bCancel = true;
     s_ImgSize.setWidth(m_pieWidth->value());
@@ -451,7 +446,7 @@ void Attractor2d::onStart()
         return;
     }
 
-    resizeImage();
+    onResizeImage();
 
     s_bDark = m_prbDark->isChecked();
     m_pImg->fill(s_bDark ? Qt::black : Qt::white);
@@ -459,29 +454,18 @@ void Attractor2d::onStart()
     m_Occupancy.fill(0);
     m_NSteps = 0;
 
+    QApplication::setOverrideCursor(Qt::BusyCursor);
     readParams();
     updateBtns(false);
 
-    m_plabInfo->setText("Starting the attractor");
-
-
-    if(!initialize())
-    {
-        m_bCancel = true;
-        m_bIsRunning = false;
-        updateBtns(true);
-        update();
-        return;
-    }
-
-    QApplication::setOverrideCursor(Qt::BusyCursor);
     m_bIsRunning = true;
     m_bCancel = false;
 
+
 #if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
-    QtConcurrent::run(&Attractor2d::runAttractor, this, this, true);
+    QFuture<void> future = QtConcurrent::run(&Attractor2d::runAttractor, this, this, true);
 #else
-    QtConcurrent::run(this, &Attractor2d::runAttractor, this, true);
+    QtConcurrent::run(this, &Attractor2d::runAttractor, this);
 #endif
     update();
 }
@@ -499,20 +483,20 @@ void Attractor2d::onContinue()
     QApplication::setOverrideCursor(Qt::BusyCursor);
 
 #if (QT_VERSION >= QT_VERSION_CHECK(6,0,0))
-    QtConcurrent::run(&Attractor2d::runAttractor, this, this, false);
+    QFuture<void> future = QtConcurrent::run(&Attractor2d::runAttractor, this, this, false);
 #else
-    QtConcurrent::run(this, &Attractor2d::runAttractor, this, false);
+    QtConcurrent::run(this, &Attractor2d::runAttractor, this);
 #endif
     update();
 
 }
 
 
-bool Attractor2d::initialize()
+void Attractor2d::initialize()
 {
     double x(0), y(0);
-    m_xmin = 1.e10;
-    m_ymin = 1.e10;
+    xmin = 1.e10;
+    ymin = 1.e10;
     double xmax(-1.e10), ymax(-1.e10);
 
     double x1(0), y1(0);
@@ -529,15 +513,18 @@ bool Attractor2d::initialize()
 
             if(fabs(x-x1)<PRECISION && fabs(y-y1)<PRECISION)
             {
-                m_plabInfo->setText("Sequence is stationary");
-                return false;
+    //            m_plabInfo->setText("Sequence is stationary"); // m_plabinfo belongs to other thread
+                m_bCancel = true;
+                m_bIsRunning = false;
+                emit taskFinished();
+                return;
             }
 
             x = x1;
             y = y1;
 
-            m_xmin = std::min(x, m_xmin);
-            m_ymin = std::min(y, m_ymin);
+            xmin = std::min(x, xmin);
+            ymin = std::min(y, ymin);
             xmax = std::max(x, xmax);
             ymax = std::max(y, ymax);
         }
@@ -546,12 +533,10 @@ bool Attractor2d::initialize()
     int w = m_pImg->width();
     int h = m_pImg->height();
 
-    m_xrange = (xmax-m_xmin)*MARGINFACTOR;
-    m_yrange = (ymax-m_ymin)*MARGINFACTOR;
-    m_xscale = m_xrange/double(w);
-    m_yscale = m_yrange/double(h);
-
-    return true;
+    xrange = (xmax-xmin)*MARGINFACTOR;
+    yrange = (ymax-ymin)*MARGINFACTOR;
+    xscale = xrange/double(w);
+    yscale = yrange/double(h);
 }
 
 
@@ -559,9 +544,9 @@ void Attractor2d::runAttractor(QWidget *pParent, bool bInitialize)
 {
     if(bInitialize)
     {
+        initialize();
     }
 
-    m_bIsRunning = true;
 
     QElapsedTimer t;
     t.start();
@@ -574,13 +559,13 @@ void Attractor2d::runAttractor(QWidget *pParent, bool bInitialize)
     int w = m_pImg->width();
     int h = m_pImg->height();
 
-    if(m_xscale>m_yscale)
+    if(xscale>yscale)
     {
-        yoffset = (h - int(m_yrange / m_xscale))/2;
+        yoffset = (h - int(yrange / xscale))/2;
     }
     else
     {
-        xoffset = (w - int(m_xrange / m_yscale))/2;
+        xoffset = (w - int(xrange / yscale))/2;
     }
 
     double x = QRandomGenerator::global()->bounded(1.0);
@@ -590,15 +575,15 @@ void Attractor2d::runAttractor(QWidget *pParent, bool bInitialize)
     int m(0), n(0);
     do
     {
-        if(m_xscale>m_yscale)
+        if(xscale>yscale)
         {
-            m =  std::round((x-m_xmin*MARGINFACTOR)/m_xrange*double(w));
-            n =  std::round((y-m_ymin*MARGINFACTOR)/m_xrange*double(w));
+            m =  std::round((x-xmin*MARGINFACTOR)/xrange*double(w));
+            n =  std::round((y-ymin*MARGINFACTOR)/xrange*double(w));
         }
         else
         {
-            m =  std::round((x-m_xmin*MARGINFACTOR)/m_yrange*double(h));
-            n =  std::round((y-m_ymin*MARGINFACTOR)/m_yrange*double(h));
+            m =  std::round((x-xmin*MARGINFACTOR)/yrange*double(h));
+            n =  std::round((y-ymin*MARGINFACTOR)/yrange*double(h));
         }
 
         m += xoffset;
@@ -706,14 +691,28 @@ void Attractor2d::updateImg()
     s_bDark = m_prbDark->isChecked();
 
     // Reading while we're writing!
-     int h = m_pImg->height();
+    int nBlocks = QThread::idealThreadCount();
 
-    QElapsedTimer t;
-    t.start();
+    int h = m_pImg->height();
+    int rowblock = h/nBlocks;
 
-    processImgBlock(0, h);
+    QFutureSynchronizer<void> futureSync;
 
-    qDebug("         Time to process %g s",  double(t.elapsed())/1000.0);
+    int firstrow(0), lastrow(0);
+    for(int iBlock=0; iBlock<nBlocks; iBlock++)
+    {
+        firstrow = iBlock*rowblock;
+        lastrow = (iBlock+1)*rowblock;
+        if(iBlock==nBlocks-1)
+            lastrow = h; // correct rounding errors;
+
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+        futureSync.addFuture(QtConcurrent::run(this, &Attractor2d::processImgBlock, firstrow, lastrow));
+#else
+        futureSync.addFuture(QtConcurrent::run(&Attractor2d::processImgBlock, this, firstrow, lastrow));
+#endif
+    }
+    futureSync.waitForFinished();
 
     update();
 }
